@@ -9,19 +9,33 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiText, setAiText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailModal, setEmailModal] = useState(null);
   const navigate = useNavigate();
+
+  const getStatus = (inv) => {
+    if (inv.amount > 0 && inv.amount_paid >= inv.amount) return 'Paid';
+    if (inv.amount_paid > 0 && inv.amount_paid < inv.amount) return 'Partial';
+    if (inv.is_paid) return 'Paid'; 
+    return 'Unpaid';
+  };
 
   const filteredInvoices = invoices.filter(inv => {
     const matchSearch = inv.client_name.toLowerCase().includes(search.toLowerCase()) || 
                         inv.invoice_number.toLowerCase().includes(search.toLowerCase());
-    if (statusFilter === 'Paid') return matchSearch && inv.is_paid === 1;
-    if (statusFilter === 'Unpaid') return matchSearch && inv.is_paid === 0;
+    if (statusFilter === 'Paid') return matchSearch && getStatus(inv) === 'Paid';
+    if (statusFilter === 'Unpaid') return matchSearch && getStatus(inv) === 'Unpaid';
+    if (statusFilter === 'Partially Paid') return matchSearch && getStatus(inv) === 'Partial';
     return matchSearch;
   });
 
   const handleMarkPaid = async (invoice) => {
     try {
-      const payload = { ...invoice, is_paid: invoice.is_paid ? 0 : 1 };
+      const isNowPaid = !invoice.is_paid;
+      const payload = { 
+        ...invoice, 
+        is_paid: isNowPaid ? 1 : 0,
+        amount_paid: isNowPaid ? invoice.amount : 0
+      };
       await axios.put(`http://127.0.0.1:5000/api/invoices/${invoice.id}`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
@@ -76,11 +90,12 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
           />
         </div>
         <select 
-          className="input-field" style={{width:'auto', margin:0, background:'#f8fafc'}}
+          className="input-field" style={{width:'auto', margin:0, background:'rgba(0,0,0,0.2)'}}
           value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
         >
           <option>All Statuses</option>
           <option>Paid</option>
+          <option>Partially Paid</option>
           <option>Unpaid</option>
         </select>
       </div>
@@ -104,8 +119,8 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
               <td>${inv.amount.toFixed(2)}</td>
               <td>{inv.due_date}</td>
               <td>
-                <span className={`status-badge ${inv.is_paid ? 'paid' : 'unpaid'}`}>
-                  {inv.is_paid ? 'Paid' : 'Unpaid'}
+                <span className={`status-badge ${getStatus(inv).toLowerCase()}`}>
+                  {getStatus(inv) === 'Partial' ? 'Partially Paid' : getStatus(inv)}
                 </span>
               </td>
               <td>
@@ -115,7 +130,7 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
                   </button>
                   <button className="icon-btn" onClick={() => onEdit(inv)}><Edit size={16}/></button>
                   <button className="icon-btn danger" onClick={() => onDelete(inv.id)}><Trash2 size={16}/></button>
-                  <button className="icon-btn" style={{color:'#3b82f6'}} onClick={() => alert('Email sent feature...')}><Mail size={16}/></button>
+                  <button className="icon-btn" style={{color:'var(--primary-hover)'}} onClick={() => setEmailModal(inv)}><Mail size={16}/></button>
                 </div>
               </td>
             </tr>
@@ -130,7 +145,7 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3><Sparkles size={20} color="#3b82f6"/> Create Invoice with AI</h3>
+              <h3><Sparkles size={20} color="var(--primary-color)"/> Create Invoice with AI</h3>
               <button className="close-btn" onClick={() => setShowAIModal(false)}>✕</button>
             </div>
             <p style={{marginBottom:'1rem', fontSize:'0.875rem', color:'var(--text-muted)'}}>
@@ -149,6 +164,41 @@ export default function InvoiceList({ invoices, onEdit, onDelete }) {
               <button className="btn-secondary" onClick={() => setShowAIModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={handleGenerateAI} disabled={loading} style={{width:'auto'}}>
                 {loading ? 'Processing...' : '✨ Auto-Fill'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emailModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3><Mail size={20} color="var(--primary-color)"/> Email Invoice</h3>
+              <button className="close-btn" onClick={() => setEmailModal(null)}>✕</button>
+            </div>
+            <p style={{marginBottom:'1rem', fontSize:'0.875rem', color:'var(--text-muted)'}}>
+              Send Invoice #{emailModal.invoice_number} to {emailModal.client_name}
+            </p>
+            <div className="form-group">
+              <label>Recipient Email</label>
+              <input className="input-field" defaultValue="client@example.com" />
+            </div>
+            <div className="form-group">
+              <label>Subject</label>
+              <input className="input-field" defaultValue={`Invoice ${emailModal.invoice_number} from Your Company`} />
+            </div>
+            <div className="form-group">
+              <label>Message</label>
+              <textarea className="input-field" rows="4" defaultValue={`Hi ${emailModal.client_name},\n\nPlease find your latest invoice attached.\n\nThank you!`}></textarea>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setEmailModal(null)}>Cancel</button>
+              <button className="btn-primary" onClick={() => {
+                 alert("Success! The invoice email has been queued for sending. (Simulated)");
+                 setEmailModal(null);
+              }} style={{width:'auto'}}>
+                Send Email
               </button>
             </div>
           </div>

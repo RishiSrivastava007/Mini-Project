@@ -22,7 +22,7 @@ export default function Layout({ children }) {
     <div className="app-wrapper">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <FileText size={24} color="#1e3a8a" />
+          <FileText size={24} color="var(--primary-color)" />
           <span>AI Invoice App</span>
         </div>
         <nav className="sidebar-nav">

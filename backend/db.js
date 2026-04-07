@@ -32,11 +32,18 @@ db.exec(`
     client_phone TEXT,
 
     amount REAL NOT NULL,
+    amount_paid REAL DEFAULT 0,
     service_details TEXT NOT NULL,
     is_paid INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   );
 `);
+
+try {
+  db.exec('ALTER TABLE invoices ADD COLUMN amount_paid REAL DEFAULT 0');
+} catch (err) {
+  // Column might already exist, safe to ignore
+}
 
 module.exports = db;

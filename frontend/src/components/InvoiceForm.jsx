@@ -19,6 +19,7 @@ export default function InvoiceForm({ invoice, onClose, onSave }) {
     client_address: invoice?.client_address || prefill.client_address || '',
     client_phone: invoice?.client_phone || prefill.client_phone || '',
     amount: invoice?.amount || prefill.amount || '',
+    amount_paid: invoice?.amount_paid || prefill.amount_paid || '',
     service_details: invoice?.service_details || prefill.service_details || '',
     is_paid: invoice?.is_paid ? true : false,
   });
@@ -26,7 +27,11 @@ export default function InvoiceForm({ invoice, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...formData, amount: parseFloat(formData.amount) };
+      const payload = { 
+        ...formData, 
+        amount: parseFloat(formData.amount || 0), 
+        amount_paid: parseFloat(formData.amount_paid || 0) 
+      };
       const config = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
 
       if (invoice) {
@@ -92,6 +97,17 @@ export default function InvoiceForm({ invoice, onClose, onSave }) {
               <label>Amount (Total)</label>
               <input className="input-field" type="number" step="0.01" name="amount" value={formData.amount} onChange={handleChange} required/>
             </div>
+            <div className="form-group" style={{flex:1}}>
+              <label>Amount Paid</label>
+              <input className="input-field" type="number" step="0.01" name="amount_paid" value={formData.amount_paid} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div style={{ padding: '1.25rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '12px', marginTop: '1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.1)' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance Due:</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: (formData.amount - formData.amount_paid) > 0 ? 'var(--warning-text)' : 'var(--success-text)', textShadow: '0 0 10px rgba(255,255,255,0.1)' }}>
+              ${(parseFloat(formData.amount || 0) - parseFloat(formData.amount_paid || 0)).toFixed(2)}
+            </span>
           </div>
         </div>
 

@@ -31,14 +31,27 @@ router.post('/extract', (req, res) => {
   if (clientMatch) {
     result.client_name = clientMatch[1].trim();
   } else {
-    const firstPart = text.split('-')[0];
-    if (firstPart) result.client_name = firstPart.replace(/client/i, '').trim();
+    let firstPart = text.split('-')[0];
+    if (firstPart) {
+      firstPart = firstPart.replace(/client/i, '');
+      firstPart = firstPart.replace(/am[m]?ount.*/i, '');
+      if (amountMatch) {
+        firstPart = firstPart.replace(amountMatch[0], '');
+      }
+      result.client_name = firstPart.trim();
+    }
   }
 
   // Extract service details
   const parts = text.split('-');
   if (parts.length >= 3) {
     result.service_details = parts[1].trim();
+  } else {
+    let desc = text.replace(/am[m]?ount.*/i, '');
+    if (amountMatch) {
+      desc = desc.replace(amountMatch[0], '');
+    }
+    result.service_details = desc.trim();
   }
 
   setTimeout(() => {

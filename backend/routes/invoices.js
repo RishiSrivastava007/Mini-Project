@@ -30,7 +30,7 @@ router.post('/', authenticate, (req, res) => {
     invoice_number, invoice_date, due_date, 
     bill_from_name, bill_from_email, bill_from_address, bill_from_phone,
     client_name, client_email, client_address, client_phone,
-    amount, service_details, is_paid 
+    amount, amount_paid, service_details, is_paid 
   } = req.body;
   try {
     const stmt = db.prepare(`
@@ -38,14 +38,14 @@ router.post('/', authenticate, (req, res) => {
         user_id, invoice_number, invoice_date, due_date,
         bill_from_name, bill_from_email, bill_from_address, bill_from_phone,
         client_name, client_email, client_address, client_phone,
-        amount, service_details, is_paid
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        amount, amount_paid, service_details, is_paid
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const info = stmt.run(
       req.user.id, invoice_number, invoice_date, due_date,
       bill_from_name || '', bill_from_email || '', bill_from_address || '', bill_from_phone || '',
       client_name || '', client_email || '', client_address || '', client_phone || '',
-      amount || 0, service_details || '', is_paid ? 1 : 0
+      amount || 0, amount_paid || 0, service_details || '', is_paid ? 1 : 0
     );
     const newInvoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json({ invoice: newInvoice, message: 'Invoice created' });
@@ -59,7 +59,7 @@ router.put('/:id', authenticate, (req, res) => {
     invoice_number, invoice_date, due_date, 
     bill_from_name, bill_from_email, bill_from_address, bill_from_phone,
     client_name, client_email, client_address, client_phone,
-    amount, service_details, is_paid 
+    amount, amount_paid, service_details, is_paid 
   } = req.body;
   
   try {
@@ -68,14 +68,14 @@ router.put('/:id', authenticate, (req, res) => {
         invoice_number=?, invoice_date=?, due_date=?,
         bill_from_name=?, bill_from_email=?, bill_from_address=?, bill_from_phone=?,
         client_name=?, client_email=?, client_address=?, client_phone=?,
-        amount=?, service_details=?, is_paid=?
+        amount=?, amount_paid=?, service_details=?, is_paid=?
       WHERE id = ? AND user_id = ?
     `);
     const info = stmt.run(
       invoice_number, invoice_date, due_date,
       bill_from_name || '', bill_from_email || '', bill_from_address || '', bill_from_phone || '',
       client_name || '', client_email || '', client_address || '', client_phone || '',
-      amount || 0, service_details || '', is_paid ? 1 : 0, 
+      amount || 0, amount_paid || 0, service_details || '', is_paid ? 1 : 0, 
       req.params.id, req.user.id
     );
     
