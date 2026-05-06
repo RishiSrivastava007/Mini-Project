@@ -15,7 +15,8 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      console.error("Login Error:", err);
+      setError(err.response?.data?.error || `Error: ${err.message}`);
     }
   };
 

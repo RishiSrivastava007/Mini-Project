@@ -16,7 +16,8 @@ export default function Signup() {
       await signup(name, email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Signup failed');
+      console.error("Signup Error:", err);
+      setError(err.response?.data?.error || `Error: ${err.message}`);
     }
   };
 
