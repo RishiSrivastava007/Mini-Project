@@ -22,36 +22,47 @@ router.post('/extract', (req, res) => {
     service_details: text
   };
 
-  // Extract amount
-  const amountMatch = text.match(/[\$₹€£]?\s?(\d+(?:,\d+)?)/);
-  if (amountMatch) result.amount = parseInt(amountMatch[1].replace(/,/g, ''), 10);
+  // Robust AI Extraction Logic
+  const extractField = (keywords, textStr) => {
+    const keywordPattern = keywords.join('|');
+    const allKeywords = '(?:Client Name|Client|Customer|Bill To|Date|Item|Service|Amount|Total|Quantity|Email|Phone|Address)';
+    const regex = new RegExp(`(?:${keywordPattern})\\s*[:\\-]?\\s*([\\s\\S]*?)(?=${allKeywords}\\s*[:\\-]|$)`, 'i');
+    const match = textStr.match(regex);
+    return match ? match[1].trim() : null;
+  };
 
-  // Extract client name
-  const clientMatch = text.match(/client\s+([a-zA-Z0-9\s]+?)\s*-/i);
+  const clientMatch = extractField(['Client Name', 'Client', 'Bill To', 'Customer'], text);
   if (clientMatch) {
-    result.client_name = clientMatch[1].trim();
+    result.client_name = clientMatch.replace(/^[:\-]\s*/, '');
   } else {
-    let firstPart = text.split('-')[0];
-    if (firstPart) {
-      firstPart = firstPart.replace(/client/i, '');
-      firstPart = firstPart.replace(/am[m]?ount.*/i, '');
-      if (amountMatch) {
-        firstPart = firstPart.replace(amountMatch[0], '');
-      }
-      result.client_name = firstPart.trim();
+    // Fallback logic
+    const parts = text.split('-');
+    if (parts.length >= 2) {
+      result.client_name = parts[0].trim().replace(/client/i, '').replace(/^[:\-]\s*/, '');
     }
   }
 
-  // Extract service details
-  const parts = text.split('-');
-  if (parts.length >= 3) {
-    result.service_details = parts[1].trim();
+  const serviceMatch = extractField(['Item', 'Service', 'Description', 'Task', 'Service Details'], text);
+  if (serviceMatch) {
+    result.service_details = serviceMatch.replace(/^[:\-]\s*/, '');
   } else {
-    let desc = text.replace(/am[m]?ount.*/i, '');
-    if (amountMatch) {
-      desc = desc.replace(amountMatch[0], '');
+    const parts = text.split('-');
+    if (parts.length >= 3) {
+      result.service_details = parts[1].trim();
     }
-    result.service_details = desc.trim();
+  }
+
+  const amountMatchExp = extractField(['Amount', 'Total', 'Cost', 'Price', 'Fee'], text);
+  if (amountMatchExp) {
+    result.amount = parseFloat(amountMatchExp.replace(/[^\d.]/g, '')) || 0;
+  } else {
+    // Fallback amount matching
+    const fallbackAmountMatch = text.match(/[\$₹€£]?\s?(\d+(?:,\d+)?)/);
+    if (fallbackAmountMatch) result.amount = parseInt(fallbackAmountMatch[1].replace(/,/g, ''), 10);
+  }
+  
+  if (result.client_name === '' || result.client_name.length > 50) {
+    result.client_name = 'Unknown Client';
   }
 
   setTimeout(() => {

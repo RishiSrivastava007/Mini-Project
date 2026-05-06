@@ -9,7 +9,7 @@ export default function InvoicesPage({ isNew }) {
 
   const fetchInvoices = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:5000/api/invoices', {
+      const res = await axios.get('/api/invoices', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setInvoices(res.data);
@@ -29,7 +29,7 @@ export default function InvoicesPage({ isNew }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this invoice?')) return;
     try {
-      await axios.delete(`http://127.0.0.1:5000/api/invoices/${id}`, {
+      await axios.delete(`/api/invoices/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       fetchInvoices();

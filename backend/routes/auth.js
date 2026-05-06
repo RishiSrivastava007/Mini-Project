@@ -35,7 +35,7 @@ router.post('/login', async (req, res) => {
     if (!isValid) return res.status(401).json({ error: 'Invalid email or password' });
 
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, company: user.company, phone: user.phone, address: user.address } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -48,12 +48,39 @@ router.get('/me', (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const stmt = db.prepare('SELECT id, name, email, created_at FROM users WHERE id = ?');
+    const stmt = db.prepare('SELECT id, name, email, company, phone, address, created_at FROM users WHERE id = ?');
     const user = stmt.get(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
   } catch (err) {
     res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+router.put('/profile', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { name, company, phone, address } = req.body;
+    
+    const stmt = db.prepare(`
+      UPDATE users 
+      SET name = ?, company = ?, phone = ?, address = ? 
+      WHERE id = ?
+    `);
+    
+    stmt.run(name || '', company || '', phone || '', address || '', decoded.id);
+    
+    // Fetch updated user
+    const selectStmt = db.prepare('SELECT id, name, email, company, phone, address, created_at FROM users WHERE id = ?');
+    const updatedUser = selectStmt.get(decoded.id);
+    
+    res.json({ message: 'Profile updated successfully', user: updatedUser });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ error: 'Invalid token or server error' });
   }
 });
 

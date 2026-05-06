@@ -42,8 +42,34 @@ db.exec(`
 
 try {
   db.exec('ALTER TABLE invoices ADD COLUMN amount_paid REAL DEFAULT 0');
-} catch (err) {
-  // Column might already exist, safe to ignore
-}
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE invoices ADD COLUMN currency TEXT DEFAULT '$'");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE invoices ADD COLUMN tax_type TEXT DEFAULT 'None'");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE invoices ADD COLUMN tax_rate REAL DEFAULT 0");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE invoices ADD COLUMN tax_amount REAL DEFAULT 0");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN company TEXT DEFAULT ''");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
+} catch (err) {}
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN address TEXT DEFAULT ''");
+} catch (err) {}
 
 module.exports = db;

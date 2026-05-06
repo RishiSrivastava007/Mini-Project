@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('http://127.0.0.1:5000/api/auth/me', {
+      axios.get('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
@@ -28,13 +28,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+    const res = await axios.post('/api/auth/login', { email, password });
     localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
   };
 
   const signup = async (name, email, password) => {
-    await axios.post('http://127.0.0.1:5000/api/auth/signup', { name, email, password });
+    await axios.post('/api/auth/signup', { name, email, password });
     await login(email, password);
   };
 
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

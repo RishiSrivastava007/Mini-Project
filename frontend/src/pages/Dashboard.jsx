@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DollarSign, Clock, FileText, PlusCircle, List, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ revenue: 0, pending: 0, total: 0 });
   const [recentInvoices, setRecentInvoices] = useState([]);
+  const [chartData, setChartData] = useState([]);
   const navigate = useNavigate();
 
   const getStatus = (inv) => {
@@ -16,16 +18,42 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/api/invoices', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }})
+    axios.get('/api/invoices', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }})
       .then(res => {
         const invoices = res.data;
-        const revenue = invoices.filter(i => i.is_paid).reduce((sum, curr) => sum + curr.amount, 0);
-        const pending = invoices.filter(i => !i.is_paid).reduce((sum, curr) => sum + curr.amount, 0);
+        const revenue = invoices.filter(i => i.is_paid).reduce((sum, curr) => sum + curr.amount + (curr.tax_amount || 0), 0);
+        const pending = invoices.filter(i => !i.is_paid).reduce((sum, curr) => sum + curr.amount + (curr.tax_amount || 0), 0);
         setStats({ revenue, pending, total: invoices.length });
         
         // Sort by id descending
         const sorted = [...invoices].sort((a, b) => b.id - a.id);
         setRecentInvoices(sorted.slice(0, 5));
+
+        // Generate chart data (last 6 months)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentMonth = new Date().getMonth();
+        const data = [];
+        for (let i = 5; i >= 0; i--) {
+          let mIndex = currentMonth - i;
+          let yOffset = 0;
+          if (mIndex < 0) {
+            mIndex += 12;
+            yOffset = -1;
+          }
+          const targetYear = new Date().getFullYear() + yOffset;
+          
+          let monthTotal = 0;
+          invoices.forEach(inv => {
+            if (inv.is_paid && inv.invoice_date) {
+               const invDate = new Date(inv.invoice_date);
+               if (invDate.getMonth() === mIndex && invDate.getFullYear() === targetYear) {
+                 monthTotal += (inv.amount + (inv.tax_amount || 0));
+               }
+            }
+          });
+          data.push({ name: months[mIndex], total: monthTotal });
+        }
+        setChartData(data);
       });
   }, []);
 
@@ -81,6 +109,32 @@ export default function Dashboard() {
          </div>
       </div>
 
+
+      {/* Analytics Chart */}
+      <div className="card" style={{ padding: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem' }}>Monthly Earnings</h2>
+        <div style={{ height: '300px', width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--primary-color)" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="var(--primary-color)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-color)', borderRadius: '8px', color: '#fff' }}
+                itemStyle={{ color: 'var(--primary-hover)' }}
+              />
+              <Area type="monotone" dataKey="total" stroke="var(--primary-color)" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Bottom Row */}
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
         
@@ -106,7 +160,7 @@ export default function Dashboard() {
                 <tr key={inv.id}>
                   <td style={{ fontWeight: 500 }}>{inv.invoice_number}</td>
                   <td>{inv.client_name}</td>
-                  <td style={{ fontWeight: 600 }}>${inv.amount.toFixed(2)}</td>
+                  <td style={{ fontWeight: 600 }}>{inv.currency || '$'}{(inv.amount + (inv.tax_amount || 0)).toFixed(2)}</td>
                   <td>
                     <span className={`status-badge ${getStatus(inv).toLowerCase()}`}>
                       {getStatus(inv) === 'Partial' ? 'Partially Paid' : getStatus(inv)}
@@ -139,7 +193,7 @@ export default function Dashboard() {
                        {getStatus(inv) === 'Paid' ? `Payment received from ${inv.client_name}` : (getStatus(inv) === 'Partial' ? `Partial payment from ${inv.client_name}` : `Invoice sent to ${inv.client_name}`)}
                     </p>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                       Invoice #{inv.invoice_number} • ${inv.amount.toFixed(2)}
+                       Invoice #{inv.invoice_number} • {inv.currency || '$'}{(inv.amount + (inv.tax_amount || 0)).toFixed(2)}
                     </p>
                  </div>
               </div>

@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import InvoicesPage from './pages/InvoicesPage';
 import Layout from './components/Layout';
+import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -22,7 +23,7 @@ function App() {
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/invoices" element={<ProtectedRoute><InvoicesPage /></ProtectedRoute>} />
       <Route path="/invoices/new" element={<ProtectedRoute><InvoicesPage isNew /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><div style={{padding:'2rem'}}>Profile page...</div></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     </Routes>
   );
 }
